@@ -1,4 +1,4 @@
-English: README.md | 中文: [README_cn.md](README_cn.md)
+English: README.md | 中文: [README_cn.md](README_cn.MD)
 # MCServerInfo
 A cli &amp; api server frontend of MinecraftPingerLib.
 
