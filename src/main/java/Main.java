@@ -11,7 +11,7 @@ import org.xbill.DNS.*;
 import org.xbill.DNS.Record;
 
 public class Main {
-    public static final String VERSION = "1.0";
+    public static final String VERSION = "1.1";
     public static final String AUTHOR = "NyaShulker 2531493755@qq.com";
     static class HostPort {
         final String host;
@@ -176,6 +176,10 @@ public class Main {
             String arg = args[index];
 
             switch (arg) {
+                case "-h":
+                case "--help":
+                    printUsage();
+                    return;
                 case "-v":
                 case "--version":
                     System.out.println("Version: " + VERSION + " Author: " + AUTHOR);
