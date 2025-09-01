@@ -7,6 +7,13 @@ https://github.com/Delta-Factory/MinecraftServerPingerLib
 
 ### Usage
 
+#### Swing GUI Mode
+```bash
+java -jar MCServerInfo.jar -g
+#or
+java -jar MCServerInfo.jar --gui
+```
+
 #### CLI Mode
 ```bash
 # Plain text output
