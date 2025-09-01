@@ -1,6 +1,6 @@
 English: README.md | 中文: [README_cn.md](README_cn.MD)
 # MCServerInfo
-A cli &amp; api server frontend of MinecraftPingerLib.
+A cli\api\gui frontend of MinecraftPingerLib.
 
 Powered By MinecraftPingerLib:  
 https://github.com/Delta-Factory/MinecraftServerPingerLib  
