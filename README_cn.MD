@@ -1,6 +1,6 @@
 English: [README.md](README.md) | 中文: README_cn.MD
 # MCServerInfo
-一个基于MinecraftPingerLib的命令行与API服务器双模式的前端。
+一个基于MinecraftPingerLib的命令行、API服务器与GUI图形三模式的前端。
 
 基于MinecraftPingerLib:  
 https://github.com/Delta-Factory/MinecraftServerPingerLib  
