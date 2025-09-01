@@ -31,6 +31,11 @@
             <artifactId>minecraft-pinger</artifactId>
             <version>0.0.0-DEV</version>
         </dependency>
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf</artifactId>
+            <version>3.5</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -57,7 +62,7 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <!-- 👇 确保保留原始 MANIFEST 属性 -->
+                            <!-- 确保保留原始 MANIFEST 属性 -->
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>

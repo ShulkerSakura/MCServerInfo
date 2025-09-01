@@ -41,7 +41,7 @@ public class Main {
      * - [IPv6]:port
      * - 域名无端口时自动查询 SRV 记录（_minecraft._tcp.host）
      */
-    static HostPort parseHostPort(String address) throws IllegalArgumentException {
+    public static HostPort parseHostPort(String address) throws IllegalArgumentException {
         if (address == null || address.isEmpty()) {
             throw new IllegalArgumentException("服务器地址不能为空");
         }
@@ -169,6 +169,8 @@ public class Main {
             return;
         }
 
+        GUI gui = new GUI();
+
         String mode = null;
         int index = 0;
 
@@ -176,6 +178,10 @@ public class Main {
             String arg = args[index];
 
             switch (arg) {
+                case "-g":
+                case "--gui":
+                    GUI.startGui();
+                    return;
                 case "-h":
                 case "--help":
                     printUsage();
@@ -276,9 +282,9 @@ public class Main {
         System.out.println("  -s|--server <监听端口>");
     }
 
-    static void runAsCli(String serverAddress, int serverPort, boolean useJson) {
+    static String runAsCli(String serverAddress, int serverPort, boolean useJson) {
         MinecraftPinger pinger = new MinecraftPinger(serverAddress, serverPort);
-
+        String result;
         if (!pinger.isOnline()) {
             if (useJson) {
                 String jsonResponse = String.format(
@@ -291,10 +297,12 @@ public class Main {
                         serverAddress, serverPort
                 );
                 System.out.println(jsonResponse);
+                result = jsonResponse;
             } else {
-                System.out.println("Server:" + serverAddress + ":" + serverPort + " is offline or not accessible");
+                result = "Server:" + serverAddress + ":" + serverPort + " is offline or not accessible";
+                System.out.println(result);
             }
-            return;
+            return result;
         }
 
         if (useJson) {
@@ -321,14 +329,17 @@ public class Main {
                     escapeJson(pinger.getMotd())
             );
             System.out.println(jsonResponse);
+            return  jsonResponse;
         } else {
             // 原始格式输出
-            System.out.println("版本: " + pinger.getVersion());
-            System.out.println("协议: " + pinger.getProtocolVersion());
-            System.out.println("玩家: " + pinger.getPlayersOnline() + "/" + pinger.getMaxPlayers());
-            System.out.println("延迟: " + pinger.getServerPing() + "ms");
-            System.out.println("MOTD: " + pinger.getAnsiMotd());
+            result = "版本: " + pinger.getVersion() + "\n"
+                    + "协议: " + pinger.getProtocolVersion() + "\n"
+                    + "玩家: " + pinger.getPlayersOnline() + "/" + pinger.getMaxPlayers() + "\n"
+                    + "延迟: " + pinger.getServerPing() + "ms" + "\n"
+                    + "MOTD: " + pinger.getAnsiMotd() + "\n";
+            System.out.printf(result);
         }
+        return result;
     }
 
     private static String escapeJson(String s) {
