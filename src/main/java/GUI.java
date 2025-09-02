@@ -6,10 +6,21 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.net.URL;
+import java.util.ResourceBundle;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class GUI {
+
+    static ResourceBundle i18n = Main.i18n;
+
+    private static String sanitizeInput(String text) {
+        if (text == null) return null;
+        // 移除 C0 控制字符（除了 \t \n \r）
+        return text.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]", "");
+    }
+
     public static void startGui() {
         // 设置 FlatLaf 外观（现代风格）
         try {
@@ -36,6 +47,16 @@ public class GUI {
         frame.setLocationRelativeTo(null); // 居中
         frame.setResizable(false); // 可选：禁止缩放
 
+        try {
+            URL iconUrl = GUI.class.getResource("/icon.png"); // 注意：路径前加 /
+            if (iconUrl != null) {
+                ImageIcon icon = new ImageIcon(iconUrl);
+                frame.setIconImage(icon.getImage());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         // 主面板 - 使用 BoxLayout 垂直布局
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -44,19 +65,19 @@ public class GUI {
 
         // 标题标签
         JLabel titleLabel = new JLabel("MCServerInfo", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("微软雅黑", Font.BOLD, 16));
+        titleLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 16));
         titleLabel.setForeground(new Color(0x2C3E50));
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         // 提示标签
-        JLabel tipLabel = new JLabel("请输入服务器地址以继续", SwingConstants.CENTER);
-        tipLabel.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        JLabel tipLabel = new JLabel(i18n.getString("gui.inputServer"), SwingConstants.CENTER);
+        tipLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
         tipLabel.setForeground(Color.GRAY);
         tipLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         // 输入框
-        PlaceholderTextField textField = new PlaceholderTextField("example：localhost:25565");
-        textField.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        PlaceholderTextField textField = new PlaceholderTextField(i18n.getString("gui.example"));
+        textField.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
         textField.setMaximumSize(new Dimension(380, 40));
         textField.setAlignmentX(Component.CENTER_ALIGNMENT);
         textField.setBorder(BorderFactory.createCompoundBorder(
@@ -65,8 +86,8 @@ public class GUI {
         ));
 
         // 按钮
-        JButton button = new JButton("Get Info");
-        button.setFont(new Font("微软雅黑", Font.BOLD, 14));
+        JButton button = new JButton(i18n.getString("gui.getInfo"));
+        button.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
         button.setBackground(new Color(0x27AE60)); // 深绿色
         button.setForeground(Color.WHITE);
         button.setFocusPainted(false);
@@ -100,8 +121,8 @@ public class GUI {
             public void actionPerformed(ActionEvent e) {
                 String input = textField.getText().trim();
 
-                if (input.isEmpty() || "example：localhost:25565".equals(input)) {
-                    JOptionPane.showMessageDialog(frame, "⚠️ 请输入服务器地址！", "输入错误", JOptionPane.WARNING_MESSAGE);
+                if (input.isEmpty() || i18n.getString("gui.example").equals(input)) {
+                    JOptionPane.showMessageDialog(frame, i18n.getString("gui.serverEmpty"), i18n.getString("gui.inputError"), JOptionPane.WARNING_MESSAGE);
                     return;
                 }
 
@@ -110,8 +131,8 @@ public class GUI {
                     hostPort = Main.parseHostPort(input);
                 } catch (IllegalArgumentException ex) {
                     JOptionPane.showMessageDialog(frame,
-                            "❌ 地址格式错误：\n" + ex.getMessage(),
-                            "输入无效", JOptionPane.ERROR_MESSAGE);
+                            i18n.getString("gui.wrongAddress") + "\n" + ex.getMessage(),
+                            i18n.getString("gui.invalidInput"), JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
@@ -120,23 +141,23 @@ public class GUI {
                 String json = Main.runAsCli(hostPort.host, hostPort.port, true);
 
                 // 创建自定义按钮
-                JButton copyButton = new JButton("📋 复制 JSON 到剪贴板");
+                JButton copyButton = new JButton(i18n.getString("gui.copyJson"));
                 copyButton.addActionListener(ev -> {
                     // 将 JSON 复制到系统剪贴板
                     StringSelection selection = new StringSelection(json);
                     Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, null);
                     // 可选：提示用户已复制
-                    JOptionPane.showMessageDialog(frame, "✅ JSON 已复制到剪贴板！", "已复制", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(frame, i18n.getString("gui.jsonCopied"), i18n.getString("gui.Copied"), JOptionPane.INFORMATION_MESSAGE);
                 });
 
                 // 使用 Object[] 定义按钮（注意顺序）
-                Object[] options = {"好的", copyButton};
+                Object[] options = {i18n.getString("gui.ok"), copyButton};
 
                 // 显示自定义选项对话框
                 JOptionPane.showOptionDialog(
                         frame,
-                        AnsiToHtml.toHtml(result),
-                        "服务器信息",
+                        AnsiToHtml.toHtml(sanitizeInput(result)),
+                        i18n.getString("gui.serverInfo"),
                         JOptionPane.DEFAULT_OPTION,
                         JOptionPane.INFORMATION_MESSAGE,
                         null,
@@ -160,7 +181,7 @@ class AnsiToHtml {
 
         // 先按 \n 分割文本，逐行处理（保留换行）
         String[] lines = text.split("\n", -1); // -1 保留末尾空行
-        StringBuilder html = new StringBuilder("<html><body style='font-family:微软雅黑,sans-serif;'>");
+        StringBuilder html = new StringBuilder("<html><body style='font-family:sans-serif;'>");
 
         for (int i = 0; i < lines.length; i++) {
             if (i > 0) html.append("<br>"); // 每行之间加 <br>

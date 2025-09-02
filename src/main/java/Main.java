@@ -7,12 +7,28 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
+import java.util.ResourceBundle;
+
 import org.xbill.DNS.*;
 import org.xbill.DNS.Record;
 
 public class Main {
-    public static final String VERSION = "1.1";
+    public static final String VERSION = "1.2";
     public static final String AUTHOR = "NyaShulker 2531493755@qq.com";
+
+    static Locale getLocale() {
+        if (Locale.getDefault().equals(Locale.CHINA)) {
+            return Locale.CHINA;
+        } else {
+            return Locale.ENGLISH;
+        }
+    }
+
+    public static ResourceBundle i18n = ResourceBundle.getBundle(
+            "i18n", getLocale(), new UTF8ResourceBundleControl()
+    );
+
     static class HostPort {
         final String host;
         final int port;
@@ -43,7 +59,7 @@ public class Main {
      */
     public static HostPort parseHostPort(String address) throws IllegalArgumentException {
         if (address == null || address.isEmpty()) {
-            throw new IllegalArgumentException("服务器地址不能为空");
+            throw new IllegalArgumentException(i18n.getString("app.error.serverEmpty"));
         }
 
         String host;
@@ -53,7 +69,7 @@ public class Main {
         if (address.startsWith("[")) {
             int bracketEnd = address.indexOf(']');
             if (bracketEnd == -1) {
-                throw new IllegalArgumentException("IPv6 地址缺少 ]");
+                throw new IllegalArgumentException(i18n.getString("ipv6.syntax"));
             }
 
             host = address.substring(1, bracketEnd);
@@ -64,11 +80,11 @@ public class Main {
                 try {
                     port = Integer.parseInt(portStr);
                     if (port < 1 || port > 65535) {
-                        throw new IllegalArgumentException("端口号必须在 1-65535 之间");
+                        throw new IllegalArgumentException(i18n.getString("port.inRange"));
                     }
                     return new HostPort(host, port); // ✅ 有端口，直接返回
                 } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("无效端口号: " + portStr);
+                    throw new IllegalArgumentException(i18n.getString("port.invalid") + portStr);
                 }
             }
             // IPv6 无端口 → 进入 SRV 或默认流程
@@ -83,12 +99,12 @@ public class Main {
                     try {
                         port = Integer.parseInt(maybePort);
                         if (port < 1 || port > 65535) {
-                            throw new IllegalArgumentException("端口号必须在 1-65535 之间");
+                            throw new IllegalArgumentException(i18n.getString("port.inRange"));
                         }
                         host = address.substring(0, lastColon);
                         return new HostPort(host, port); // ✅ 有端口，直接返回
                     } catch (NumberFormatException e) {
-                        throw new IllegalArgumentException("无效端口号");
+                        throw new IllegalArgumentException(i18n.getString("port.invalid"));
                     }
                 }
             }
@@ -188,12 +204,12 @@ public class Main {
                     return;
                 case "-v":
                 case "--version":
-                    System.out.println("Version: " + VERSION + " Author: " + AUTHOR);
+                    System.out.println(i18n.getString("app.version") + VERSION + " " + i18n.getString("app.author") + AUTHOR);
                     return;
                 case "-c":
                 case "--cli":
                     if (mode != null) {
-                        System.err.println("错误：只能指定一种模式。");
+                        System.err.println(i18n.getString("app.error.onlyOneMode"));
                         printUsage();
                         return;
                     }
@@ -209,7 +225,7 @@ public class Main {
 
                     // 必须还有一个参数：服务器地址（如 localhost:25565）
                     if (index >= args.length) {
-                        System.err.println("错误：-c/--cli 需要一个服务器地址（如 localhost 或 localhost:25565）");
+                        System.err.println(i18n.getString("app.error.needServerAddress"));
                         printUsage();
                         return;
                     }
@@ -219,7 +235,7 @@ public class Main {
                     try {
                         hp = parseHostPort(address);
                     } catch (IllegalArgumentException e) {
-                        System.err.println("地址解析失败: " + e.getMessage());
+                        System.err.println(i18n.getString("app.error.addressAnalyzeFailed") + e.getMessage());
                         return;
                     }
 
@@ -228,7 +244,7 @@ public class Main {
                 case "-s":
                 case "--server":
                     if (mode != null) {
-                        System.err.println("错误：只能指定一种模式。");
+                        System.err.println(i18n.getString("app.error.onlyOneMode"));
                         printUsage();
                         return;
                     }
@@ -236,7 +252,7 @@ public class Main {
                     index++;
 
                     if (index >= args.length) {
-                        System.err.println("错误：-s/--server 需要一个参数：监听端口。");
+                        System.err.println(i18n.getString("app.error.needListenPort"));
                         printUsage();
                         return;
                     }
@@ -245,41 +261,41 @@ public class Main {
                     try {
                         listenPort = Integer.parseInt(args[index++]);
                     } catch (NumberFormatException e) {
-                        System.err.println("错误：监听端口必须是数字。");
+                        System.err.println(i18n.getString("app.error.listenPortMustBeNumber"));
                         return;
                     }
 
                     runAsServer(listenPort);
-                    System.out.println("按 Ctrl+C 退出服务器");
+                    System.out.println(i18n.getString("app.quitServer"));
                     try {
                         Thread.sleep(Long.MAX_VALUE);
                     } catch (InterruptedException e) {
-                        System.out.println("服务器已停止");
+                        System.out.println(i18n.getString("app.serverStopped"));
                     }
                     return; // Server 模式执行完退出
 
                 default:
-                    System.err.println("未知参数: " + arg);
+                    System.err.println(i18n.getString("app.unknownParameter") + arg);
                     printUsage();
                     return;
             }
         }
         // 如果没有匹配到任何模式
         if (mode == null) {
-            System.err.println("错误：未指定模式。");
+            System.err.println(i18n.getString("app.error.noMode"));
             printUsage();
         }
     }
 
     static void printUsage(){
-        System.out.println("作者: " + AUTHOR);
-        System.out.println("用法:");
-        System.out.println("  查看版本号:");
-        System.out.println("  -v|--version");
-        System.out.println("  本地命令行模式:");
-        System.out.println("  -c|--cli <服务器地址:端口号>");
-        System.out.println("  api服务器模式:");
-        System.out.println("  -s|--server <监听端口>");
+        System.out.println(i18n.getString("app.author") + AUTHOR);
+        System.out.println(i18n.getString("app.usage"));
+        System.out.println(i18n.getString("usage.version"));
+        System.out.println(i18n.getString("usage.versionCmd"));
+        System.out.println(i18n.getString("usage.cli"));
+        System.out.println(i18n.getString("usage.cliCmd"));
+        System.out.println(i18n.getString("usage.server"));
+        System.out.println(i18n.getString("usage.serverCmd"));
     }
 
     static String runAsCli(String serverAddress, int serverPort, boolean useJson) {
@@ -299,7 +315,7 @@ public class Main {
                 System.out.println(jsonResponse);
                 result = jsonResponse;
             } else {
-                result = "Server:" + serverAddress + ":" + serverPort + " is offline or not accessible";
+                result = i18n.getString("log.server") + serverAddress + ":" + serverPort + i18n.getString("log.offline");
                 System.out.println(result);
             }
             return result;
@@ -332,11 +348,11 @@ public class Main {
             return  jsonResponse;
         } else {
             // 原始格式输出
-            result = "版本: " + pinger.getVersion() + "\n"
-                    + "协议: " + pinger.getProtocolVersion() + "\n"
-                    + "玩家: " + pinger.getPlayersOnline() + "/" + pinger.getMaxPlayers() + "\n"
-                    + "延迟: " + pinger.getServerPing() + "ms" + "\n"
-                    + "MOTD: " + pinger.getAnsiMotd() + "\n";
+            result = i18n.getString("result.version") + pinger.getVersion() + "\n"
+                    + i18n.getString("result.protocol") + pinger.getProtocolVersion() + "\n"
+                    + i18n.getString("result.players") + pinger.getPlayersOnline() + "/" + pinger.getMaxPlayers() + "\n"
+                    + i18n.getString("result.ping") + pinger.getServerPing() + "ms" + "\n"
+                    + i18n.getString("result.motd") + pinger.getAnsiMotd() + "\n";
             System.out.printf(result);
         }
         return result;
@@ -361,7 +377,7 @@ public class Main {
     }
 
     static void runAsServer(int listenPort) throws IOException {
-        System.out.println("启动服务器模式，监听端口: " + listenPort);
+        System.out.println(i18n.getString("app.server.startListenOn") + listenPort);
         HttpServer server = HttpServer.create(new InetSocketAddress(listenPort), 0);
         server.createContext("/api", exchange -> {
             try {
@@ -452,6 +468,6 @@ public class Main {
         });
         server.setExecutor(null);
         server.start();
-        System.out.println("服务器启动，用法: http://localhost:" + listenPort + "/api?youraddress 或: http://localhost:" + listenPort + "/api?youraddress:yourport");
+        System.out.println(i18n.getString("app.server.started") + "http://localhost:" + listenPort + "/api?youraddress" + i18n.getString("app.server.or") + "http://localhost:" + listenPort + "/api?youraddress:yourport");
     }
 }
