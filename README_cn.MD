@@ -9,9 +9,7 @@ https://github.com/Delta-Factory/MinecraftServerPingerLib
 
 #### GUI 模式
 ```bash
-java -jar MCServerInfo.jar -g
-# 或者
-java -jar MCServerInfo.jar --gui
+GUI模式在无参数的情况下默认启动
 ```
 
 #### CLI 模式
