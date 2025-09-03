@@ -43,7 +43,7 @@ public class GUI {
         // 创建主窗口
         JFrame frame = new JFrame("MCServerInfo");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(420, 200);
+        frame.setSize(420, 210);
         frame.setLocationRelativeTo(null); // 居中
         frame.setResizable(false); // 可选：禁止缩放
 
@@ -96,6 +96,21 @@ public class GUI {
         button.setMaximumSize(new Dimension(140, 40));
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)); // 手型光标
 
+        // About
+        // 创建一个面板来容纳 about 和 version，使用 BorderLayout
+        JPanel infoPanel = new JPanel(new BorderLayout());
+        infoPanel.setBackground(Color.WHITE); // 保持与背景一致
+        JLabel about = new JLabel(i18n.getString("app.author") + Main.AUTHOR);
+        JLabel version = new JLabel(i18n.getString("app.version") + Main.VERSION);
+        about.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
+        version.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
+        about.setForeground(Color.GRAY);
+        version.setForeground(Color.GRAY);
+        // 将左标签放在 WEST，右标签放在 EAST
+        infoPanel.add(about, BorderLayout.WEST);
+        infoPanel.add(version, BorderLayout.EAST);
+        infoPanel.setAlignmentY(Component.BOTTOM_ALIGNMENT);
+
         // 添加组件 + 间距
         panel.add(titleLabel);
         panel.add(Box.createRigidArea(new Dimension(0, 8)));
@@ -104,6 +119,7 @@ public class GUI {
         panel.add(textField);
         panel.add(Box.createRigidArea(new Dimension(0, 16)));
         panel.add(button);
+        panel.add(infoPanel);
 
         // 为输入框添加回车监听
         textField.addKeyListener(new KeyAdapter() {
