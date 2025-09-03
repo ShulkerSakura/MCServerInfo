@@ -332,74 +332,92 @@ public class Main {
         return balance == 0;
     }
 
-    static String runAsCli(String serverAddress, int serverPort, boolean useJson) {
-        MinecraftPinger pinger = new MinecraftPinger(serverAddress, serverPort);
-        String result;
-        if (!pinger.isOnline()) {
-            if (useJson) {
-                String jsonResponse = String.format(
-                        "{"
-                                + "\"host\":\"%s\","
-                                + "\"port\":%d,"
-                                + "\"online\":false,"
-                                + "\"error\":\"Server is offline or unreachable\""
-                                + "}",
-                        serverAddress, serverPort
-                );
-                System.out.println(jsonResponse);
-                result = jsonResponse;
-            } else {
-                result = i18n.getString("log.server") + serverAddress + ":" + serverPort + i18n.getString("log.offline");
-                System.out.println(result);
-            }
-            return result;
+    public static class ServerResult {
+        public final String text;
+        public final String json;
+
+        public ServerResult(String text, String json) {
+            this.text = text;
+            this.json = json;
         }
+    }
 
-        if (useJson) {
-            // 准备 motd 字段：尝试保留为 JSON 对象，否则作为字符串
-            String motdJson;
-            String rawMotd = pinger.getRawMotd();
-            if (isValidJson(rawMotd)) {
-                motdJson = rawMotd;  // ✅ 是合法 JSON，直接使用（不加引号，不转义）
-            } else {
-                motdJson = "\"" + escapeJson(rawMotd) + "\"";  // ❌ 不是 JSON，作为字符串处理，需加引号并转义
-            }
+    public static ServerResult queryServerResult(String serverAddress, int serverPort) {
+        MinecraftPinger pinger = new MinecraftPinger(serverAddress, serverPort);
 
-            // 使用 %s 插入 motd（注意：如果它是对象，就不带外层引号）
-            String jsonResponse = String.format(
+        if (!pinger.isOnline()) {
+            // 离线：生成 text 和 json
+            String text = i18n.getString("log.server") + serverAddress + ":" + serverPort + i18n.getString("log.offline");
+
+            String json = String.format(
                     "{"
                             + "\"host\":\"%s\","
                             + "\"port\":%d,"
-                            + "\"online\":true,"
-                            + "\"version\":\"%s\","
-                            + "\"protocol\":%d,"
-                            + "\"playersOnline\":%d,"
-                            + "\"maxPlayers\":%d,"
-                            + "\"ping\":%d,"
-                            + "\"motd\":%s"  // ← 注意：这里用 %s，但 motdJson 自己决定是否带引号
+                            + "\"online\":false,"
+                            + "\"error\":\"Server is offline or unreachable\""
                             + "}",
-                    serverAddress,
-                    serverPort,
-                    escapeJson(pinger.getVersion()),
-                    pinger.getProtocolVersion(),
-                    pinger.getPlayersOnline(),
-                    pinger.getMaxPlayers(),
-                    pinger.getServerPing(),
-                    motdJson  // ✅ 根据情况传入：{"text":"..."} 或 "\"纯文本\""
+                    serverAddress, serverPort
             );
 
-            System.out.println(jsonResponse);
-            return jsonResponse;
-        } else {
-            // 原始格式输出
-            result = i18n.getString("result.version") + pinger.getVersion() + "\n"
-                    + i18n.getString("result.protocol") + pinger.getProtocolVersion() + "\n"
-                    + i18n.getString("result.players") + pinger.getPlayersOnline() + "/" + pinger.getMaxPlayers() + "\n"
-                    + i18n.getString("result.ping") + pinger.getServerPing() + "ms" + "\n"
-                    + i18n.getString("result.motd") + pinger.getAnsiMotd() + "\n";
-            System.out.printf(result);
+            return new ServerResult(text, json);
         }
-        return result;
+
+        // 在线：准备数据
+        String version = pinger.getVersion();
+        int protocol = pinger.getProtocolVersion();
+        int playersOnline = pinger.getPlayersOnline();
+        int maxPlayers = pinger.getMaxPlayers();
+        long ping = pinger.getServerPing();
+        String rawMotd = pinger.getRawMotd();
+
+        // === 生成文本格式（text）===
+        String text = i18n.getString("result.version") + version + "\n"
+                + i18n.getString("result.protocol") + protocol + "\n"
+                + i18n.getString("result.players") + playersOnline + "/" + maxPlayers + "\n"
+                + i18n.getString("result.ping") + ping + "ms" + "\n"
+                + i18n.getString("result.motd") + pinger.getAnsiMotd() + "\n";
+
+        // === 生成 JSON 格式（json）===
+        String motdJson;
+        if (isValidJson(rawMotd)) {
+            motdJson = rawMotd; // 直接作为 JSON 对象插入
+        } else {
+            motdJson = "\"" + escapeJson(rawMotd) + "\""; // 作为字符串，需转义并加引号
+        }
+
+        String json = String.format(
+                "{"
+                        + "\"host\":\"%s\","
+                        + "\"port\":%d,"
+                        + "\"online\":true,"
+                        + "\"version\":\"%s\","
+                        + "\"protocol\":%d,"
+                        + "\"playersOnline\":%d,"
+                        + "\"maxPlayers\":%d,"
+                        + "\"ping\":%d,"
+                        + "\"motd\":%s"
+                        + "}",
+                serverAddress,
+                serverPort,
+                escapeJson(version),
+                protocol,
+                playersOnline,
+                maxPlayers,
+                ping,
+                motdJson
+        );
+
+        // ✅ 返回封装好的结果
+        return new ServerResult(text, json);
+    }
+
+    static void runAsCli(String serverAddress, int serverPort, boolean useJson) {
+        ServerResult result = queryServerResult(serverAddress, serverPort);
+        if (useJson) {
+            System.out.println(result.json);
+        } else {
+            System.out.print(result.text); // 注意：用 print 而不是 printf
+        }
     }
 
     private static String escapeJson(String s) {
@@ -422,6 +440,7 @@ public class Main {
 
     static void runAsServer(int listenPort) throws IOException {
         System.out.println(i18n.getString("app.server.startListenOn") + listenPort);
+
         HttpServer server = HttpServer.create(new InetSocketAddress(listenPort), 0);
         server.createContext("/api", exchange -> {
             try {
@@ -431,14 +450,14 @@ public class Main {
                     return;
                 }
 
-                // 获取 ? 后面的服务器地址（如：localhost:25565）
+                // 获取查询参数
                 String query = exchange.getRequestURI().getRawQuery();
                 if (query == null || query.trim().isEmpty()) {
                     sendResponse(exchange, 400, "{\"error\":\"Missing server address\"}");
                     return;
                 }
 
-                // 解码（支持中文等）
+                // 解码地址
                 String address = URLDecoder.decode(query, StandardCharsets.UTF_8);
                 HostPort hp;
                 try {
@@ -448,50 +467,13 @@ public class Main {
                     return;
                 }
 
-                MinecraftPinger pinger = new MinecraftPinger(hp.host, hp.port);
-                String jsonResponse;
-                int statusCode;
+                // ✅ 使用 queryServerResult 统一逻辑
+                ServerResult result;
                 try {
-                    if (pinger.isOnline()) {
-                        // 成功：返回服务器信息
-                        jsonResponse = String.format(
-                                "{"
-                                        + "\"host\":\"%s\","
-                                        + "\"port\":%d,"
-                                        + "\"online\":true,"
-                                        + "\"version\":\"%s\","
-                                        + "\"protocol\":%d,"
-                                        + "\"playersOnline\":%d,"
-                                        + "\"maxPlayers\":%d,"
-                                        + "\"ping\":%d,"
-                                        + "\"motd\":\"%s\""
-                                        + "}",
-                                hp.host,
-                                hp.port,
-                                escapeJson(pinger.getVersion()),
-                                pinger.getProtocolVersion(),
-                                pinger.getPlayersOnline(),
-                                pinger.getMaxPlayers(),
-                                pinger.getServerPing(),
-                                escapeJson(pinger.getRawMotd())
-                        );
-                        statusCode = 200;
-                    } else {
-                        // 离线
-                        jsonResponse = String.format(
-                                "{"
-                                        + "\"host\":\"%s\","
-                                        + "\"port\":%d,"
-                                        + "\"online\":false,"
-                                        + "\"error\":\"Server is offline or unreachable\""
-                                        + "}",
-                                hp.host, hp.port
-                        );
-                        statusCode = 500;
-                    }
+                    result = queryServerResult(hp.host, hp.port);
                 } catch (Exception e) {
-                    // 异常（如超时、连接失败）
-                    jsonResponse = String.format(
+                    // 捕获可能的运行时异常（如连接超时、DNS 错误等）
+                    String errorJson = String.format(
                             "{"
                                     + "\"host\":\"%s\","
                                     + "\"port\":%d,"
@@ -500,18 +482,33 @@ public class Main {
                                     + "}",
                             hp.host, hp.port, escapeJson(e.getMessage())
                     );
-                    statusCode = 500;
+                    exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
+                    sendResponse(exchange, 500, errorJson);
+                    return;
                 }
 
-                // 返回响应
+                // ✅ 提取 JSON 响应
+                // 注意：queryServerResult 返回的 json 已经是完整对象，包含 "online":true/false
+                // 我们可以根据 JSON 内容判断状态码
+                int statusCode = result.json.contains("\"online\":true") ? 200 : 500;
+
                 exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
-                sendResponse(exchange, statusCode, jsonResponse);
+                sendResponse(exchange, statusCode, result.json);
+
             } catch (Exception e) {
                 e.printStackTrace();
+                try {
+                    sendResponse(exchange, 500, "{\"error\":\"Internal server error\"}");
+                } catch (IOException ignored) {}
             }
         });
+
         server.setExecutor(null);
         server.start();
-        System.out.println(i18n.getString("app.server.started") + "http://localhost:" + listenPort + "/api?youraddress" + i18n.getString("app.server.or") + "http://localhost:" + listenPort + "/api?youraddress:yourport");
+
+        System.out.println(i18n.getString("app.server.started") +
+                "http://localhost:" + listenPort + "/api?youraddress" +
+                i18n.getString("app.server.or") +
+                "http://localhost:" + listenPort + "/api?youraddress:yourport");
     }
 }

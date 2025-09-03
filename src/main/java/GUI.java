@@ -153,8 +153,9 @@ public class GUI {
                 }
 
                 // 获取文本和 JSON 格式结果
-                String result = Main.runAsCli(hostPort.host, hostPort.port, false);
-                String json = Main.runAsCli(hostPort.host, hostPort.port, true);
+                Main.ServerResult result = Main.queryServerResult(hostPort.host, hostPort.port);
+                String text = result.text;
+                String json = result.json;
 
                 // 创建自定义按钮
                 JButton copyButton = new JButton(i18n.getString("gui.copyJson"));
@@ -172,7 +173,7 @@ public class GUI {
                 // 显示自定义选项对话框
                 JOptionPane.showOptionDialog(
                         frame,
-                        AnsiToHtml.toHtml(sanitizeInput(result)),
+                        AnsiToHtml.toHtml(sanitizeInput(text)),
                         i18n.getString("gui.serverInfo"),
                         JOptionPane.DEFAULT_OPTION,
                         JOptionPane.INFORMATION_MESSAGE,
