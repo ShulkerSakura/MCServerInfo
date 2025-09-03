@@ -9,9 +9,7 @@ https://github.com/Delta-Factory/MinecraftServerPingerLib
 
 #### GUI Mode
 ```bash
-java -jar MCServerInfo.jar -g
-# Or
-java -jar MCServerInfo.jar --gui
+GUI Mode now launch with no arguments by default 
 ```
 
 #### CLI Mode
